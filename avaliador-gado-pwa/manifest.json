@@ -1,0 +1,14 @@
+{
+  "name": "Avaliador de Gado",
+  "short_name": "Gado",
+  "description": "Calculadora financeira para avaliação de compra de gado — TIR, VPL, IL e mais",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#f5f2ec",
+  "theme_color": "#2d5a27",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

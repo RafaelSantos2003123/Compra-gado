@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#2d5a27">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gado">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Avaliador de Gado</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --green-dark:  #2d5a27;
+  --green-mid:   #3d7a35;
+  --green-light: #e8f5e0;
+  --green-pale:  #f3f9ef;
+  --amber:       #c17f24;
+  --amber-light: #fdf3e0;
+  --red:         #c0392b;
+  --red-light:   #fdecea;
+  --text-primary:   #1a1a18;
+  --text-secondary: #5a5a54;
+  --text-muted:     #8a8a82;
+  --bg:          #f5f2ec;
+  --surface:     #ffffff;
+  --border:      rgba(0,0,0,0.10);
+  --border-mid:  rgba(0,0,0,0.16);
+  --radius:      12px;
+  --radius-sm:   8px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bot: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --green-dark:  #5aab50;
+    --green-mid:   #4a8f42;
+    --green-light: #1a2e18;
+    --green-pale:  #151f13;
+    --amber:       #e0a040;
+    --amber-light: #2a2010;
+    --red:         #e05545;
+    --red-light:   #2a1210;
+    --text-primary:   #f0ede8;
+    --text-secondary: #a0a098;
+    --text-muted:     #707068;
+    --bg:          #111210;
+    --surface:     #1c1e1a;
+    --border:      rgba(255,255,255,0.09);
+    --border-mid:  rgba(255,255,255,0.15);
+  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; background: var(--bg); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: var(--text-primary); font-size: 16px; }
+
+/* HEADER */
+.header {
+  background: var(--green-dark);
+  color: #fff;
+  padding: calc(var(--safe-top) + 14px) 16px 14px;
+  display: flex; align-items: center; gap: 10px;
+  position: sticky; top: 0; z-index: 100;
+}
+.header-icon { font-size: 22px; }
+.header h1 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; flex: 1; }
+.header-sub { font-size: 12px; opacity: 0.7; }
+
+/* NAV TABS */
+.nav { display: flex; background: var(--surface); border-bottom: 0.5px solid var(--border); }
+.nav-btn { flex: 1; padding: 10px 4px; font-size: 11px; font-weight: 500; color: var(--text-muted); background: none; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; transition: color 0.15s; }
+.nav-btn .nav-icon { font-size: 18px; }
+.nav-btn.active { color: var(--green-dark); }
+.nav-btn.active .nav-dot { width: 4px; height: 4px; background: var(--green-dark); border-radius: 50%; }
+.nav-dot { width: 4px; height: 4px; border-radius: 50%; }
+
+/* PAGES */
+.page { display: none; overflow-y: auto; height: calc(100vh - 100px); padding-bottom: calc(var(--safe-bot) + 16px); }
+.page.active { display: block; }
+
+/* FORM */
+.form-page { padding: 0 0 80px; }
+.section { background: var(--surface); margin: 10px 12px; border-radius: var(--radius); border: 0.5px solid var(--border); overflow: hidden; }
+.section-hd { padding: 10px 14px 0; display: flex; align-items: center; gap: 7px; }
+.section-hd .s-icon { font-size: 15px; }
+.section-title { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.fields { padding: 8px 14px 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field.full { grid-column: 1 / -1; }
+.field label { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+.field input, .field select {
+  background: var(--bg); border: 0.5px solid var(--border-mid);
+  border-radius: var(--radius-sm); padding: 9px 10px;
+  font-size: 15px; color: var(--text-primary); width: 100%;
+  -webkit-appearance: none;
+}
+.field input:focus, .field select:focus { outline: none; border-color: var(--green-mid); }
+.field .hint { font-size: 11px; color: var(--text-muted); }
+
+/* TIPO GRUPO */
+.tipo-group { display: flex; gap: 6px; }
+.tipo-btn { flex: 1; padding: 8px 4px; font-size: 12px; font-weight: 500; border: 0.5px solid var(--border-mid); border-radius: var(--radius-sm); background: var(--bg); color: var(--text-secondary); cursor: pointer; text-align: center; transition: all 0.15s; }
+.tipo-btn.active { background: var(--green-light); border-color: var(--green-mid); color: var(--green-dark); }
+
+/* CALCULAR BTN */
+.btn-calc-wrap { padding: 12px 12px; }
+.btn-calc {
+  width: 100%; padding: 14px; border-radius: var(--radius);
+  background: var(--green-dark); color: #fff; font-size: 16px;
+  font-weight: 600; border: none; cursor: pointer; letter-spacing: -0.01em;
+  transition: opacity 0.15s;
+}
+.btn-calc:active { opacity: 0.85; }
+
+/* RESULTADOS PAGE */
+.results-page { padding: 10px 12px 80px; }
+.alert-box { border-radius: var(--radius); padding: 12px 14px; margin-bottom: 12px; font-size: 14px; line-height: 1.5; }
+.alert-box.ok   { background: var(--green-light); color: var(--green-dark); border: 0.5px solid var(--green-mid); }
+.alert-box.bad  { background: var(--red-light);   color: var(--red);         border: 0.5px solid var(--red); }
+.alert-box.warn { background: var(--amber-light); color: var(--amber);       border: 0.5px solid var(--amber); }
+.alert-box strong { font-weight: 600; }
+
+.metrics { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.metric { background: var(--surface); border-radius: var(--radius-sm); padding: 10px 10px; border: 0.5px solid var(--border); }
+.m-label { font-size: 11px; color: var(--text-muted); margin-bottom: 3px; font-weight: 500; }
+.m-value { font-size: 18px; font-weight: 600; line-height: 1.1; }
+.m-sub { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+.metric.pos .m-value { color: var(--green-dark); }
+.metric.neg .m-value { color: var(--red); }
+.metric.warn .m-value { color: var(--amber); }
+
+.card { background: var(--surface); border-radius: var(--radius); border: 0.5px solid var(--border); margin-bottom: 10px; overflow: hidden; }
+.card-title { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; padding: 10px 14px 8px; border-bottom: 0.5px solid var(--border); }
+.detail-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; border-bottom: 0.5px solid var(--border); font-size: 14px; }
+.detail-row:last-child { border-bottom: none; }
+.d-lbl { color: var(--text-secondary); }
+.d-val { font-weight: 600; color: var(--text-primary); }
+.d-val.pos { color: var(--green-dark); }
+.d-val.neg { color: var(--red); }
+
+.chart-wrap { padding: 14px; }
+.chart-wrap canvas { width: 100% !important; }
+
+/* SENSIBILIDADE TABS */
+.stabs { display: flex; gap: 0; margin: 0 0 10px; border-radius: var(--radius-sm); overflow: hidden; border: 0.5px solid var(--border-mid); }
+.stab { flex: 1; padding: 8px 4px; font-size: 12px; font-weight: 500; text-align: center; cursor: pointer; background: var(--bg); color: var(--text-muted); border: none; border-right: 0.5px solid var(--border-mid); }
+.stab:last-child { border-right: none; }
+.stab.active { background: var(--surface); color: var(--green-dark); }
+
+/* SENSI PAGE */
+.sensi-page { padding: 10px 12px 80px; }
+.sensi-desc { font-size: 13px; color: var(--text-secondary); margin-bottom: 10px; line-height: 1.5; }
+
+/* EMPTY STATE */
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 24px; gap: 12px; color: var(--text-muted); text-align: center; }
+.empty-icon { font-size: 40px; opacity: 0.4; }
+.empty-state p { font-size: 14px; }
+
+/* scrollbar hide */
+.page::-webkit-scrollbar { display: none; }
+.page { -ms-overflow-style: none; scrollbar-width: none; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="header-icon">🐂</span>
+  <div>
+    <h1>Avaliador de Gado</h1>
+    <div class="header-sub">TIR · VPL · IL · Sensibilidade</div>
+  </div>
+</div>
+
+<div class="nav">
+  <button class="nav-btn active" id="nav-dados" onclick="goPage('dados')">
+    <span class="nav-icon">📋</span>
+    <span>Dados</span>
+    <div class="nav-dot"></div>
+  </button>
+  <button class="nav-btn" id="nav-resultado" onclick="goPage('resultado')">
+    <span class="nav-icon">📊</span>
+    <span>Resultado</span>
+    <div class="nav-dot"></div>
+  </button>
+  <button class="nav-btn" id="nav-sensi" onclick="goPage('sensi')">
+    <span class="nav-icon">📈</span>
+    <span>Sensibilidade</span>
+    <div class="nav-dot"></div>
+  </button>
+</div>
+
+<!-- PAGE: DADOS -->
+<div class="page form-page active" id="page-dados">
+
+  <div class="section">
+    <div class="section-hd"><span class="s-icon">🏷️</span><span class="section-title">Aquisição</span></div>
+    <div class="fields">
+      <div class="field full">
+        <label>Tipo de precificação</label>
+        <div class="tipo-group">
+          <button class="tipo-btn active" id="t-cab" onclick="setTipo('cab')">Por cabeça</button>
+          <button class="tipo-btn" id="t-arr" onclick="setTipo('arr')">Por arroba</button>
+          <button class="tipo-btn" id="t-kg"  onclick="setTipo('kg')">Por kg vivo</button>
+        </div>
+      </div>
+      <div class="field">
+        <label id="preco-label">Preço (R$/cabeça)</label>
+        <input type="number" id="preco" value="3500" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label>Peso entrada (kg)</label>
+        <input type="number" id="peso-entrada" value="350" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label>Nº de cabeças</label>
+        <input type="number" id="num-cab" value="100" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label>Mortalidade (%)</label>
+        <input type="number" id="mortalidade" value="1" inputmode="decimal">
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-hd"><span class="s-icon">🌿</span><span class="section-title">Fase a pasto</span></div>
+    <div class="fields">
+      <div class="field">
+        <label>Meses a pasto</label>
+        <input type="number" id="meses-pasto" value="6" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label>GMD (kg/dia)</label>
+        <input type="number" id="gmd-pasto" value="0.5" inputmode="decimal">
+        <span class="hint">ganho médio diário</span>
+      </div>
+      <div class="field">
+        <label>Custo/mês (R$/cab)</label>
+        <input type="number" id="custo-pasto" value="80" inputmode="decimal">
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-hd"><span class="s-icon">🏚️</span><span class="section-title">Confinamento (opcional)</span></div>
+    <div class="fields">
+      <div class="field">
+        <label>Dias confinado</label>
+        <input type="number" id="dias-conf" value="90" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label>GMD (kg/dia)</label>
+        <input type="number" id="gmd-conf" value="1.3" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label>Custo diária (R$/cab)</label>
+        <input type="number" id="custo-conf" value="22" inputmode="decimal">
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-hd"><span class="s-icon">💰</span><span class="section-title">Venda</span></div>
+    <div class="fields">
+      <div class="field">
+        <label>Preço venda (R$/@)</label>
+        <input type="number" id="preco-venda" value="320" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label>Rendimento carcaça (%)</label>
+        <input type="number" id="rc" value="52" inputmode="decimal">
+        <span class="hint">para converter em @</span>
+      </div>
+      <div class="field">
+        <label>Outros custos (R$/cab)</label>
+        <input type="number" id="outros" value="0" inputmode="decimal">
+        <span class="hint">sanidade, frete…</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-hd"><span class="s-icon">⚙️</span><span class="section-title">Parâmetros financeiros</span></div>
+    <div class="fields">
+      <div class="field">
+        <label>TMA (% a.a.)</label>
+        <input type="number" id="tma" value="12" inputmode="decimal">
+        <span class="hint">taxa mínima de atratividade</span>
+      </div>
+      <div class="field">
+        <label>Amplitude sensib. (%)</label>
+        <input type="number" id="amp" value="30" inputmode="numeric">
+        <span class="hint">variação p/ análise</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-calc-wrap">
+    <button class="btn-calc" onclick="calcular()">Calcular indicadores →</button>
+  </div>
+</div>
+
+<!-- PAGE: RESULTADO -->
+<div class="page results-page" id="page-resultado">
+  <div id="res-empty" class="empty-state">
+    <div class="empty-icon">📊</div>
+    <p>Preencha os dados e toque em<br><strong>Calcular indicadores</strong></p>
+  </div>
+  <div id="res-content" style="display:none">
+    <div id="alert-box" class="alert-box ok"></div>
+    <div class="metrics" id="metrics-box"></div>
+    <div class="card">
+      <div class="card-title">Resumo financeiro</div>
+      <div id="detail-box"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Fluxo de caixa acumulado</div>
+      <div class="chart-wrap" style="height:220px">
+        <canvas id="chart-fc" role="img" aria-label="Fluxo de caixa acumulado ao longo do ciclo"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE: SENSIBILIDADE -->
+<div class="page sensi-page" id="page-sensi">
+  <div id="sen-empty" class="empty-state">
+    <div class="empty-icon">📈</div>
+    <p>Calcule primeiro para ver<br>a análise de sensibilidade</p>
+  </div>
+  <div id="sen-content" style="display:none">
+    <div class="stabs">
+      <button class="stab active" onclick="showStab('perfil')">Perfil de VPL</button>
+      <button class="stab" onclick="showStab('tornado')">Tornado</button>
+    </div>
+
+    <div id="stab-perfil">
+      <div class="sensi-desc" id="perfil-desc"></div>
+      <div class="card">
+        <div class="chart-wrap" style="height:260px">
+          <canvas id="chart-vpl" role="img" aria-label="Perfil de VPL por preço de venda"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div id="stab-tornado" style="display:none">
+      <div class="sensi-desc" id="tornado-desc"></div>
+      <div class="card">
+        <div class="chart-wrap" id="tornado-wrap" style="height:320px">
+          <canvas id="chart-tornado" role="img" aria-label="Gráfico tornado de sensibilidade"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let tipoPreco = 'cab';
+let charts = {};
+let calculado = false;
+
+// ---- NAVEGAÇÃO ----
+function goPage(id) {
+  ['dados','resultado','sensi'].forEach(p => {
+    document.getElementById('page-'+p).classList.toggle('active', p === id);
+    document.getElementById('nav-'+p).classList.toggle('active', p === id);
+  });
+  // scroll to top
+  const pg = document.getElementById('page-'+id);
+  if (pg) pg.scrollTop = 0;
+}
+
+function setTipo(t) {
+  tipoPreco = t;
+  ['cab','arr','kg'].forEach(x => document.getElementById('t-'+x).classList.toggle('active', x===t));
+  const lbl = { cab:'Preço (R$/cabeça)', arr:'Preço (R$/arroba — peso vivo)', kg:'Preço (R$/kg vivo)' };
+  document.getElementById('preco-label').textContent = lbl[t];
+}
+
+function showStab(id) {
+  document.getElementById('stab-perfil').style.display = id==='perfil' ? '' : 'none';
+  document.getElementById('stab-tornado').style.display = id==='tornado' ? '' : 'none';
+  document.querySelectorAll('.stab').forEach((b,i) => b.classList.toggle('active', ['perfil','tornado'][i]===id));
+  // redraw on show to fix canvas sizing
+  if (id === 'tornado' && charts['tornado']) { charts['tornado'].resize(); }
+  if (id === 'perfil' && charts['vpl']) { charts['vpl'].resize(); }
+}
+
+// ---- HELPERS ----
+function v(id) { return parseFloat(document.getElementById(id).value) || 0; }
+
+function precoUnitario(preco, pesoEntrada) {
+  if (tipoPreco === 'cab') return preco;
+  if (tipoPreco === 'kg')  return preco * pesoEntrada;
+  const arr = pesoEntrada * 0.50 / 15;
+  return preco * arr;
+}
+
+function calcVpl(p, pvOverride) {
+  const pv = pvOverride !== undefined ? pvOverride : p.precoVenda;
+  const cabSobrev = p.nCab * (1 - p.mortalidade);
+  const ganhoPasto = p.gmdPasto * p.mesesPasto * 30;
+  const ganhoConf  = p.gmdConf  * p.diasConf;
+  const pesoSaida  = p.pesoEntrada + ganhoPasto + ganhoConf;
+  const arrobasSaida = pesoSaida * p.rc / 15;
+  const receita = cabSobrev * arrobasSaida * pv;
+  const custo   = p.nCab * (p.precoUnit + p.custoPasto * p.mesesPasto + p.custoConf * p.diasConf + p.outros);
+  const mesesTotal = p.mesesPasto + p.diasConf / 30;
+  const tmaM = Math.pow(1 + p.tma, 1/12) - 1;
+  const vpl  = -custo + receita / Math.pow(1 + tmaM, mesesTotal);
+  return { vpl, receita, custo, mesesTotal, arrobasSaida, cabSobrev, pesoSaida };
+}
+
+function calcTir(custo, receita, mesesTotal) {
+  const pts = Math.ceil(mesesTotal);
+  let lo = -0.999, hi = 10, mid, val;
+  for (let i = 0; i < 200; i++) {
+    mid = (lo + hi) / 2;
+    val = -custo;
+    for (let t = 0; t <= pts; t++) val += (t === pts ? receita : 0) / Math.pow(1+mid, t);
+    if (Math.abs(val) < 0.5) break;
+    if (val > 0) lo = mid; else hi = mid;
+  }
+  return isFinite(mid) ? (Math.pow(1+mid, 12) - 1) * 100 : null;
+}
+
+function fR(val) {
+  const s = Math.abs(val).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+  return (val < 0 ? '-R$ ' : 'R$ ') + s;
+}
+function fRk(val) {
+  const abs = Math.abs(val);
+  const s = abs >= 1000000
+    ? (abs/1000000).toFixed(1).replace('.',',')+'M'
+    : abs >= 1000 ? (abs/1000).toFixed(0)+'k' : abs.toFixed(0);
+  return (val < 0 ? '-R$' : 'R$') + s;
+}
+
+function metCard(label, value, sub, cls) {
+  return `<div class="metric ${cls}"><div class="m-label">${label}</div><div class="m-value">${value}</div><div class="m-sub">${sub}</div></div>`;
+}
+function drow(label, val, cls='') {
+  return `<div class="detail-row"><span class="d-lbl">${label}</span><span class="d-val ${cls}">${val}</span></div>`;
+}
+function destroyChart(k) { if(charts[k]){ charts[k].destroy(); delete charts[k]; } }
+
+// ---- CALCULAR ----
+function calcular() {
+  const pesoEntrada = v('peso-entrada');
+  const preco       = v('preco');
+  const nCab        = v('num-cab');
+  const rc          = v('rc') / 100;
+  const mortalidade = v('mortalidade') / 100;
+  const mesesPasto  = v('meses-pasto');
+  const gmdPasto    = v('gmd-pasto');
+  const custoPasto  = v('custo-pasto');
+  const diasConf    = v('dias-conf');
+  const gmdConf     = v('gmd-conf');
+  const custoConf   = v('custo-conf');
+  const precoVenda  = v('preco-venda');
+  const tma         = v('tma') / 100;
+  const outros      = v('outros');
+  const amp         = v('amp') / 100;
+
+  const precoUnit = precoUnitario(preco, pesoEntrada);
+  const params = { precoUnit, pesoEntrada, nCab, mesesPasto, gmdPasto, custoPasto,
+                   diasConf, gmdConf, custoConf, rc, mortalidade, outros, tma, precoVenda };
+
+  const { vpl, receita, custo, mesesTotal, arrobasSaida, cabSobrev, pesoSaida } = calcVpl(params);
+  const tmaM = Math.pow(1+tma, 1/12) - 1;
+  const tirA = calcTir(custo, receita, mesesTotal);
+  const il   = custo > 0 ? (receita / Math.pow(1+tmaM, mesesTotal)) / custo : 0;
+  const roi  = custo > 0 ? ((receita - custo) / custo) * 100 : 0;
+  const margem = receita > 0 ? ((receita - custo) / receita) * 100 : 0;
+  const lucro  = receita - custo;
+  const precoEq = custo / (cabSobrev * arrobasSaida / Math.pow(1+tmaM, mesesTotal));
+  const difEq   = ((precoVenda - precoEq) / precoEq) * 100;
+  const payback = lucro > 0 ? (custo / (lucro / mesesTotal)) : null;
+
+  // mostrar resultado
+  document.getElementById('res-empty').style.display = 'none';
+  document.getElementById('res-content').style.display = '';
+  document.getElementById('sen-empty').style.display = 'none';
+  document.getElementById('sen-content').style.display = '';
+  calculado = true;
+
+  // ALERT
+  const alrt = document.getElementById('alert-box');
+  if (vpl > 0 && tirA !== null && tirA > tma*100) {
+    alrt.className = 'alert-box ok';
+    alrt.innerHTML = `<strong>Negócio viável.</strong> VPL de ${fR(vpl)} e TIR de ${tirA.toFixed(1)}% a.a. — supera a TMA de ${(tma*100).toFixed(1)}%.`;
+  } else if (vpl > 0) {
+    alrt.className = 'alert-box warn';
+    alrt.innerHTML = `<strong>Atenção.</strong> VPL positivo, mas TIR ${tirA!==null?tirA.toFixed(1)+'%':'N/D'} próxima ou abaixo da TMA de ${(tma*100).toFixed(1)}%.`;
+  } else {
+    alrt.className = 'alert-box bad';
+    alrt.innerHTML = `<strong>Inviável.</strong> VPL negativo de ${fR(vpl)}. Ajuste preço de compra, custos ou ganho de peso.`;
+  }
+
+  // MÉTRICAS
+  document.getElementById('metrics-box').innerHTML = [
+    metCard('VPL', fRk(vpl), 'valor presente líq.', vpl>=0?'pos':'neg'),
+    metCard('TIR', tirA!==null?tirA.toFixed(1)+'%':'N/D', 'a.a.', tirA!==null&&tirA>=tma*100?'pos':'neg'),
+    metCard('IL', il.toFixed(2), 'índice lucrat.', il>=1?'pos':'neg'),
+    metCard('ROI', roi.toFixed(1)+'%', 'retorno s/ invest.', roi>=0?'pos':'neg'),
+    metCard('Margem', margem.toFixed(1)+'%', 'margem bruta', margem>=0?'pos':'neg'),
+    metCard('Payback', payback?payback.toFixed(1)+'m':'N/D', 'meses p/ recup.', payback&&payback<=mesesTotal?'pos':'warn'),
+  ].join('');
+
+  // DETALHE
+  document.getElementById('detail-box').innerHTML = [
+    drow('Investimento total', fR(custo)),
+    drow('— Aquisição', fR(nCab * precoUnit)),
+    drow('— Pasto', fR(nCab * custoPasto * mesesPasto)),
+    drow('— Confinamento', fR(nCab * custoConf * diasConf)),
+    drow('— Outros', fR(nCab * outros)),
+    drow('Receita bruta', fR(receita)),
+    drow('Lucro líquido', fR(lucro), lucro>=0?'pos':'neg'),
+    drow('Peso de saída', pesoSaida.toFixed(1)+' kg/cab'),
+    drow('Arrobas/cab', arrobasSaida.toFixed(2)+' @'),
+    drow('Preço equilíbrio (@)', fR(precoEq)),
+    drow('Margem s/ equilíbrio', difEq.toFixed(1)+'%', difEq>=0?'pos':'neg'),
+    drow('Duração do ciclo', mesesTotal.toFixed(1)+' meses'),
+    drow('Cabeças sobreviventes', Math.round(cabSobrev)+''),
+  ].join('');
+
+  // GRÁFICO FC
+  const pts = Math.ceil(mesesTotal) + 1;
+  const labFC = Array.from({length:pts}, (_,i) => 'M'+i);
+  const fc = labFC.map((_,i) => i===0 ? -custo : i < pts-1 ? -custo : lucro);
+  destroyChart('fc');
+  charts['fc'] = new Chart(document.getElementById('chart-fc').getContext('2d'), {
+    type:'line', data:{ labels:labFC, datasets:[{
+      label:'Fluxo acumulado', data:fc,
+      borderColor: vpl>=0?'#3d7a35':'#c0392b',
+      backgroundColor: vpl>=0?'rgba(61,122,53,0.1)':'rgba(192,57,43,0.1)',
+      fill:true, tension:0.3, pointRadius:3, borderWidth:2
+    }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false} },
+      scales:{
+        y:{ ticks:{callback:v=>fRk(v), color:'#8a8a82', font:{size:11}}, grid:{color:'rgba(0,0,0,0.07)'} },
+        x:{ ticks:{color:'#8a8a82', font:{size:11}}, grid:{display:false} }
+      }
+    }
+  });
+
+  // PERFIL VPL
+  const steps = 40;
+  const pvMin = precoVenda * (1-amp), pvMax = precoVenda * (1+amp);
+  const pvLab=[], vplDat=[];
+  for(let i=0;i<=steps;i++){
+    const pv = pvMin + (pvMax-pvMin)*i/steps;
+    pvLab.push(pv.toFixed(0));
+    vplDat.push(calcVpl(params,pv).vpl);
+  }
+  const eqIdx = vplDat.findIndex(x=>x>=0);
+  const eqPv  = eqIdx>0 ? pvMin+(pvMax-pvMin)*eqIdx/steps : null;
+  document.getElementById('perfil-desc').textContent = eqPv
+    ? `Ponto de equilíbrio em torno de R$ ${eqPv.toFixed(0)}/@. Abaixo disso o VPL fica negativo. Amplitude: ±${(amp*100).toFixed(0)}% em torno de R$ ${precoVenda.toFixed(0)}/@.`
+    : `Perfil do VPL com variação de ±${(amp*100).toFixed(0)}% no preço de venda (base: R$ ${precoVenda.toFixed(0)}/@).`;
+  destroyChart('vpl');
+  charts['vpl'] = new Chart(document.getElementById('chart-vpl').getContext('2d'), {
+    type:'line', data:{ labels:pvLab, datasets:[
+      { label:'VPL', data:vplDat, borderColor:'#3d7a35', backgroundColor:'rgba(61,122,53,0.08)', fill:true, tension:0.4, pointRadius:0, borderWidth:2 },
+      { label:'Zero', data:Array(pvLab.length).fill(0), borderColor:'rgba(100,100,90,0.4)', borderDash:[5,4], pointRadius:0, borderWidth:1, fill:false }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:ctx=>'VPL: '+fR(ctx.raw) } } },
+      scales:{
+        y:{ ticks:{callback:v=>fRk(v), color:'#8a8a82', font:{size:11}}, grid:{color:'rgba(0,0,0,0.07)'} },
+        x:{ ticks:{color:'#8a8a82', font:{size:11}, maxTicksLimit:6, callback:(_,i)=>i%8===0?pvLab[i]+' @':''}, grid:{display:false} }
+      }
+    }
+  });
+
+  // TORNADO
+  const vars = [
+    { label:'Preço de venda (@)', key:'precoVenda' },
+    { label:'GMD a pasto',        key:'gmdPasto' },
+    { label:'GMD confinamento',   key:'gmdConf' },
+    { label:'Custo diária conf.', key:'custoConf', inv:true },
+    { label:'Custo mês pasto',    key:'custoPasto', inv:true },
+    { label:'Mortalidade',        key:'mortalidade', inv:true },
+    { label:'Rend. carcaça',      key:'rc' },
+  ];
+  const tLab=[], tPos=[], tNeg=[];
+  vars.forEach(({ label, key, inv }) => {
+    const pH = {...params}; pH[key] = params[key]*(1+amp);
+    const pL = {...params}; pL[key] = params[key]*(1-amp);
+    const vH = calcVpl(pH).vpl, vL = calcVpl(pL).vpl;
+    const best = inv?vL:vH, worst = inv?vH:vL;
+    tLab.push(label);
+    tPos.push(+(best-vpl).toFixed(0));
+    tNeg.push(+(worst-vpl).toFixed(0));
+  });
+  const ord = tLab.map((_,i)=>i).sort((a,b)=>(Math.abs(tPos[b])+Math.abs(tNeg[b]))-(Math.abs(tPos[a])+Math.abs(tNeg[a])));
+  const sL=ord.map(i=>tLab[i]), sP=ord.map(i=>tPos[i]), sN=ord.map(i=>tNeg[i]);
+
+  document.getElementById('tornado-desc').textContent = `Impacto de ±${(amp*100).toFixed(0)}% em cada variável sobre o VPL base de ${fR(vpl)}.`;
+  const tH = sL.length*44+80;
+  document.getElementById('tornado-wrap').style.height = tH+'px';
+  destroyChart('tornado');
+  charts['tornado'] = new Chart(document.getElementById('chart-tornado').getContext('2d'), {
+    type:'bar', data:{ labels:sL, datasets:[
+      { label:'Impacto +', data:sP, backgroundColor:'rgba(61,122,53,0.75)', borderRadius:3 },
+      { label:'Impacto −', data:sN, backgroundColor:'rgba(192,57,43,0.75)', borderRadius:3 },
+    ]},
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:ctx=>(ctx.raw>=0?'+':'')+fR(ctx.raw)+' vs base' } } },
+      scales:{
+        x:{ ticks:{callback:v=>fRk(v), color:'#8a8a82', font:{size:11}}, grid:{color:'rgba(0,0,0,0.07)'} },
+        y:{ ticks:{color:'#8a8a82', font:{size:11}} }
+      }
+    }
+  });
+
+  goPage('resultado');
+}
+
+// SERVICE WORKER
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
